@@ -87,12 +87,12 @@ export default new Promise((resolve) => {
                 // '^/api': '/admin/', // 效果：/api/link/list ==> http://localhost:4300/admin/link/list
               },
             },
-            '/prodapi': {
-              target: 'https://live.hsslive.cn',
+            '/srs': {
+              target: 'http://localhost:1985',
               secure: false,
               changeOrigin: true,
               pathRewrite: {
-                '^/prodapi': '/api/',
+                '^/srs': '',
               },
             },
           },
