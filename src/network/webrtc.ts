@@ -1,7 +1,6 @@
 export class WebRTCClass {
   peerConnection?: RTCPeerConnection;
   videoEl?: HTMLVideoElement;
-  // sender?: RTCRtpTransceiver;
 
   constructor({ videoEl }: { videoEl: HTMLVideoElement }) {
     this.videoEl = videoEl;
@@ -13,55 +12,42 @@ export class WebRTCClass {
     this.peerConnection = new RTCPeerConnection();
     this.peerConnection?.addEventListener('addstream', (event: any) => {
       console.warn(`pc收到addstream事件`, event, event.stream);
-      this.addStream(event.stream);
     });
     this.peerConnection?.addEventListener('addtrack', (event: any) => {
       console.warn(`pc收到addtrack事件`, event, event.stream);
-      this.addStream(event.stream);
     });
   }
 
   createOffer = async () => {
     try {
-      const sdp = await this.peerConnection?.createOffer();
-      return sdp;
+      const offer = await this.peerConnection?.createOffer();
+      console.log('createOffer成功');
+      return offer;
     } catch (error) {
       console.error('createOffer错误');
       console.log(error);
     }
   };
 
-  setLocalDescription = async (desc) => {
+  setLocalDescription = async (desc: RTCLocalSessionDescriptionInit) => {
     try {
       await this.peerConnection?.setLocalDescription(desc);
+      console.log('setLocalDescription成功');
     } catch (error) {
       console.error('setLocalDescription错误');
       console.log(error);
     }
   };
 
-  setRemoteDescription = async (desc) => {
+  setRemoteDescription = async (sdp: string) => {
     try {
       await this.peerConnection?.setRemoteDescription(
-        new RTCSessionDescription(desc)
+        new RTCSessionDescription({ type: 'answer', sdp })
       );
+      console.log('setRemoteDescription成功');
     } catch (error) {
       console.error('setRemoteDescription错误');
       console.log(error);
     }
-  };
-
-  addTransceiver = ({ track, stream, direction }) => {
-    console.warn('addTransceiver', track, stream, direction);
-    this.peerConnection?.addTransceiver(track, {
-      streams: [stream],
-      direction,
-    });
-  };
-
-  addStream = (stream) => {
-    if (!this.peerConnection) return;
-    console.log('addStream', this.videoEl, stream);
-    this.videoEl!.srcObject = stream;
   };
 }

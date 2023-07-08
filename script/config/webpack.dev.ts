@@ -87,14 +87,14 @@ export default new Promise((resolve) => {
                 // '^/api': '/admin/', // 效果：/api/link/list ==> http://localhost:4300/admin/link/list
               },
             },
-            '/srs': {
-              target: 'http://localhost:1985',
-              secure: false,
-              changeOrigin: true,
-              pathRewrite: {
-                '^/srs': '',
-              },
-            },
+            // '/srs': {
+            //   target: 'http://localhost:1985',
+            //   secure: false,
+            //   changeOrigin: true,
+            //   pathRewrite: {
+            //     '^/srs': '',
+            //   },
+            // },
           },
         },
         // @ts-ignore
