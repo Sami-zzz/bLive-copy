@@ -1,24 +1,26 @@
 <template>
   <div class="app-wrap">
-    <h1>rtc推流，hls拉流</h1>
+    <h1>rtc推流，flv拉流</h1>
     <video
       id="myVideo"
       ref="videoRef"
       muted
       autoplay
     ></video>
-    <div
+    <video
       id="pullVideo"
       ref="pullVideoRef"
-    ></div>
+      muted
+      autoplay
+    ></video>
     <!-- <button @click="getScreen">获取窗口</button> -->
     <button @click="startRTC">WebRTCClass</button>
-    <button @click="playHls">playHls</button>
+    <button @click="playFlv">playFlv</button>
   </div>
 </template>
 
 <script lang="ts" setup>
-import videoJs from 'video.js';
+import flvJs from 'flv.js';
 import { ref } from 'vue';
 
 import { fetchRtcV1Publish } from './api/srs';
@@ -29,29 +31,14 @@ const videoRef = ref<HTMLVideoElement>();
 const pullVideoRef = ref<HTMLVideoElement>();
 const liveStreamName = ref('billd/ppp');
 
-function playHls() {
-  const videoEl = document.createElement('video');
-  videoEl.autoplay = true;
-  videoEl.muted = true;
-  videoEl.playsInline = true;
-  videoEl.setAttribute('webkit-playsinline', 'true');
-  pullVideoRef.value?.appendChild(videoEl);
-  const videoPlayer = videoJs(videoEl, {
-    sources: [
-      {
-        src: `http://localhost:5001/${liveStreamName.value}.m3u8`,
-        type: 'application/x-mpegURL',
-      },
-    ],
+function playFlv() {
+  const flvPlayer = flvJs.createPlayer({
+    type: 'flv',
+    url: `http://localhost:5001/${liveStreamName.value}.flv`,
   });
-  videoPlayer
-    .play()
-    ?.then(() => {
-      console.log('播放hls成功');
-    })
-    .catch((e) => {
-      console.log('播放hls失败', e);
-    });
+  console.log('123');
+  flvPlayer.attachMediaElement(pullVideoRef.value!);
+  flvPlayer.load();
 }
 
 async function getScreen() {
@@ -101,19 +88,12 @@ function startRTC() {
 </script>
 
 <style lang="scss" scoped>
-@import 'video.js/dist/video-js.min.css';
-
 .app-wrap {
   #myVideo {
     width: 700px;
   }
   #pullVideo {
     width: 500px;
-    height: 600px;
-
-    :deep(video) {
-      width: 500px;
-    }
   }
 }
 </style>
