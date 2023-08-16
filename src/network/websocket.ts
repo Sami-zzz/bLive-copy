@@ -2,6 +2,8 @@ import { Socket, io } from 'socket.io-client';
 
 export class WebSocketClass {
   socket: Socket;
+  socketId?: string;
+
   constructor() {
     this.socket = io('ws://localhost:4300', {
       transports: ['websocket'],
@@ -10,7 +12,7 @@ export class WebSocketClass {
   }
 
   // 发送websocket消息
-  send = ({ msgType, data }: { msgType: string; data?: any }) => {
+  send = <T>({ msgType, data }: { msgType: string; data?: T }) => {
     if (!this.socket?.connected) {
       console.error(
         '【websocket】未连接成功，不发送websocket消息！',
