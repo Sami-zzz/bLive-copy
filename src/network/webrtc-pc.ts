@@ -57,6 +57,36 @@ export class WebRTCPcClass {
       }
     });
   }
+  setMaxBitrate = () => {
+    // bit，比特
+    // byte，字节
+    // kb，千字节
+    // mb，兆字节
+    // gb，千兆字节
+
+    // 1 Byte = 8 Bits
+    // 1 KB = 1024 Bytes
+    // 1 MB = 1024 KB
+    // 1 GB = 1024 MB
+
+    // 假设我们带宽是30m，即30mbps，
+    // bps 是 bits per second 的简称，也就是每秒传输多少bit的意思
+    // 30mbps，也就是每秒传输30m，
+    // 因为1mb等于1024kb，所有30mb等于1024*30等于30720kb
+    // 因此30m带宽理论速率是：30720 / 8 = 3840kb/s，也就是3840 / 1024 = 3.75mb/s
+
+    this.peerConnection?.getSenders().forEach((sender) => {
+      const parameters = sender.getParameters();
+      parameters.encodings.forEach((parameters) => {
+        // 假设我们配置最大推流是300kb/s,我们需要设置maxBitrate为：
+        const bit = 1;
+        const byte = bit * 8;
+        const kb = byte * 1024;
+        parameters.maxBitrate = 100 * kb;
+      });
+      sender.setParameters(parameters);
+    });
+  };
 
   createAnswer = async () => {
     try {

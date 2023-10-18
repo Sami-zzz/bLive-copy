@@ -7,11 +7,14 @@
       muted
       autoplay
       controls
-      style="width: 500px; height: 500px"
+      style="height: 600px"
     ></video>
     <button @click="handleGetDisplayMedia">getDisplayMedia</button>
     <button @click="handleSendJoin">join</button>
     <button @click="handleSendOffer">offer</button>
+    <button @click="handleFramerate">设置帧率</button>
+    <button @click="handleResolutionRatio">设置分辨率</button>
+    <button @click="handleSetMaxBitrate">设置码率</button>
   </div>
 </template>
 
@@ -35,6 +38,39 @@ const localVideoRef = ref<HTMLVideoElement>();
 const localStream = ref<MediaStream>();
 
 const roomId = ref('123');
+
+function handleFramerate() {
+  console.log('handleFramerate');
+  if (localStream.value) {
+    localStream.value.getTracks().forEach((track) => {
+      if (track.kind === 'video') {
+        console.log(track);
+        const old = track.getConstraints();
+        track.applyConstraints({ ...old, frameRate: 1 });
+        console.log('设置帧率完成');
+      }
+    });
+  }
+}
+
+function handleResolutionRatio() {
+  console.log('handleResolutionRatio');
+  if (localStream.value) {
+    localStream.value.getTracks().forEach((track) => {
+      if (track.kind === 'video') {
+        console.log(track);
+        const old = track.getConstraints();
+        track.applyConstraints({ ...old, height: 200 });
+        console.log('设置分辨率完成');
+      }
+    });
+  }
+}
+
+function handleSetMaxBitrate() {
+  console.log('handleResolutionRatio');
+  rtc.value?.setMaxBitrate();
+}
 
 async function handleGetDisplayMedia() {
   try {
