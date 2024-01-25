@@ -1,183 +1,129 @@
 <template>
   <div>
-    <h1>websocket测试</h1>
-    <h2>当前SocketId：{{ ws?.socketId }}</h2>
+    <h1>web audio混流</h1>
     <video
-      ref="localVideoRef"
-      muted
+      ref="videoRef"
       autoplay
+      muted
+      width="400"
+      height="400"
       controls
-      style="height: 600px"
     ></video>
-    <button @click="handleGetDisplayMedia">getDisplayMedia</button>
-    <button @click="handleSendJoin">join</button>
-    <button @click="handleSendOffer">offer</button>
-    <button @click="handleFramerate">设置帧率</button>
-    <button @click="handleResolutionRatio">设置分辨率</button>
-    <button @click="handleSetMaxBitrate">设置码率</button>
+    <div>
+      <input
+        ref="uploadRef"
+        type="file"
+      />
+      <button @click="handleNullAudio">handleNullAudio</button>
+      <button @click="handleVideoAudio">handleVideoAudio</button>
+      <button @click="handleMic">handleMic</button>
+      <button @click="handleMixedAudio">handleMixedAudio</button>
+      <button @click="handleMsr">handleMsr</button>
+    </div>
   </div>
 </template>
 
 <script lang="ts" setup>
-import { onMounted, ref } from 'vue';
+import { ref } from 'vue';
 
-import { WebRTCPcClass } from '@/network/webrtc-pc';
-import { WebSocketClass } from '@/network/websocket';
+const uploadRef = ref<HTMLInputElement>();
+const videoRef = ref<HTMLVideoElement>();
+const streamList = ref<MediaStream[]>([]);
 
-import {
-  WsAnswerType,
-  WsCandidateType,
-  WsJoinType,
-  WsMsgTypeEnum,
-  WsOfferType,
-} from './interface-ws';
-
-const ws = ref<WebSocketClass>();
-const rtc = ref<WebRTCPcClass>();
-const localVideoRef = ref<HTMLVideoElement>();
-const localStream = ref<MediaStream>();
-
-const roomId = ref('123');
-
-function handleFramerate() {
-  console.log('handleFramerate');
-  if (localStream.value) {
-    localStream.value.getTracks().forEach((track) => {
-      if (track.kind === 'video') {
-        console.log(track);
-        const old = track.getConstraints();
-        track.applyConstraints({ ...old, frameRate: 1 });
-        console.log('设置帧率完成');
-      }
-    });
-  }
+async function handleMic() {
+  const stream = await navigator.mediaDevices.getUserMedia({
+    video: false,
+    audio: true,
+  });
+  const video = document.createElement('video');
+  video.id = 'mic';
+  video.autoplay = true;
+  // video.muted = true;
+  video.controls = true;
+  video.srcObject = stream;
+  streamList.value.push(stream);
+  document.body.appendChild(video);
 }
 
-function handleResolutionRatio() {
-  console.log('handleResolutionRatio');
-  if (localStream.value) {
-    localStream.value.getTracks().forEach((track) => {
-      if (track.kind === 'video') {
-        console.log(track);
-        const old = track.getConstraints();
-        track.applyConstraints({ ...old, height: 200 });
-        console.log('设置分辨率完成');
-      }
-    });
-  }
+function handleMsr() {
+  // @ts-ignore
+  const stream = videoRef.value!.captureStream();
+  const recorder = new MediaRecorder(stream, {
+    // https://developer.mozilla.org/en-US/docs/Web/Media/Formats/codecs_parameter#videomp4_codecsavc1.4d002a
+    mimeType: 'video/webm;codecs=avc1.4d002a,opus',
+  });
+  recorder.ondataavailable = (event) => {
+    const link = document.createElement('a');
+    link.href = window.URL.createObjectURL(event.data);
+    link.download = 'billd-live.webm';
+    link.click();
+    window.URL.revokeObjectURL(link.href);
+    recorder.pause();
+  };
+  recorder.start(5000);
 }
 
-function handleSetMaxBitrate() {
-  console.log('handleResolutionRatio');
-  rtc.value?.setMaxBitrate();
+function handleNullAudio() {
+  // 创建AudioContext对象
+  const audioContext = new AudioContext();
+
+  // 创建输入和输出节点
+  const source = audioContext.createBufferSource();
+  const destination = audioContext.createMediaStreamDestination();
+
+  // 连接输入和输出节点
+  source.connect(destination);
+
+  // 播放空白音频
+  source.start();
+
+  // 获取音频流
+  const stream = destination.stream;
+  streamList.value.push(stream);
+
+  const video = document.createElement('video');
+  video.id = 'nullaudio';
+  video.autoplay = true;
+  // video.muted = true;
+  video.controls = true;
+  video.srcObject = stream;
+  document.body.appendChild(video);
 }
 
-async function handleGetDisplayMedia() {
-  try {
-    localStream.value = await navigator.mediaDevices.getDisplayMedia({
-      video: true,
-      audio: true,
-    });
-    if (localVideoRef.value) {
-      localVideoRef.value.srcObject = localStream.value;
-    }
-  } catch (error) {
-    console.error('getDisplayMedia错误');
-  }
+function handleVideoAudio() {
+  const videoFile = uploadRef.value?.files?.[0]!;
+  const url = URL.createObjectURL(videoFile);
+  const video = document.createElement('video');
+  video.id = 'video';
+  video.width = 400;
+  video.src = url;
+  video.loop = true;
+  video.autoplay = true;
+  // video.muted = true;
+  video.controls = true;
+  document.body.appendChild(video);
+  // @ts-ignore
+  const stream = video.captureStream();
+  streamList.value.push(stream);
 }
 
-function handleSendJoin() {
-  ws.value?.send<WsJoinType['data']>({
-    msgType: WsMsgTypeEnum.join,
-    data: {
-      room_id: roomId.value,
-    },
-  });
-}
+function handleMixedAudio() {
+  const audioCtx = new AudioContext();
+  const res: { source: MediaStreamAudioSourceNode; gainNode: GainNode }[] = [];
 
-async function handleSendOffer() {
-  rtc.value = new WebRTCPcClass({
-    videoEl: localVideoRef.value!,
-    ws: ws.value!,
-    roomId: roomId.value,
+  streamList.value.forEach((stream) => {
+    const source = audioCtx.createMediaStreamSource(stream);
+    const gainNode = audioCtx.createGain();
+    source.connect(gainNode);
+    res.push({ source, gainNode });
+    console.log('混流', stream.id, stream);
   });
-  if (!localStream.value) {
-    console.error('没有localStream');
-    return;
-  }
-  localStream.value.getTracks().forEach((track) => {
-    if (rtc.value && localStream.value) {
-      console.log('插入track', track);
-      rtc.value.peerConnection?.addTrack(track, localStream.value);
-      // rtc.value.peerConnection?.getSenders().forEach((sender) => {
-      //   if (sender.track !== track) {
-      //     rtc.value?.peerConnection?.addTrack(track, localStream.value!);
-      //   }
-      // });
-    }
+  const destination = audioCtx.createMediaStreamDestination();
+  res.forEach((item) => {
+    item.source.connect(item.gainNode);
+    item.gainNode.connect(destination);
   });
-  const offer = await rtc.value.createOffer();
-  if (!offer) {
-    console.error('没有offer');
-    return;
-  }
-  await rtc.value.setLocalDescription(offer);
-  ws.value?.send<WsOfferType['data']>({
-    msgType: WsMsgTypeEnum.offer,
-    data: { sdp: offer, room_id: roomId.value },
-  });
-}
-
-function init() {
-  ws.value = new WebSocketClass();
-  ws.value.socket.on('connect', () => {
-    console.log('connect成功', ws.value?.socket.id);
-    if (ws.value) {
-      ws.value.socketId = ws.value.socket.id;
-    }
-    initReceive();
-  });
-}
-
-onMounted(() => {
-  init();
-});
-
-function initReceive() {
-  ws.value?.socket.on(WsMsgTypeEnum.offer, async (data: WsOfferType) => {
-    console.log('收到offer', data);
-    rtc.value = new WebRTCPcClass({
-      videoEl: localVideoRef.value!,
-      ws: ws.value!,
-      roomId: roomId.value,
-    });
-    await rtc.value.setRemoteDescription(data.data.sdp);
-    const answer = await rtc.value.createAnswer();
-    if (answer) {
-      await rtc.value.setLocalDescription(answer);
-      ws.value?.send<WsAnswerType['data']>({
-        msgType: WsMsgTypeEnum.answer,
-        data: { room_id: roomId.value, sdp: answer },
-      });
-    } else {
-      console.error('没有answer');
-    }
-  });
-  ws.value?.socket.on(WsMsgTypeEnum.answer, (data: WsAnswerType) => {
-    console.log('收到answer', data);
-    rtc.value?.setRemoteDescription(data.data.sdp);
-  });
-  ws.value?.socket.on(WsMsgTypeEnum.candidate, (data: WsCandidateType) => {
-    console.log('收到candidate', data);
-    rtc.value?.addIceCandidate(data.data.candidate);
-  });
-
-  ws.value?.socket.on(WsMsgTypeEnum.joined, (data) => {
-    console.log('收到joined', data);
-  });
-  ws.value?.socket.on(WsMsgTypeEnum.message, (data) => {
-    console.log('收到message', data);
-  });
+  videoRef.value!.srcObject = destination.stream;
 }
 </script>
 
