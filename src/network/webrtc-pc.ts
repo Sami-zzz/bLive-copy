@@ -7,19 +7,27 @@ export class WebRTCPcClass {
   videoEl: HTMLVideoElement;
   ws: WebSocketClass;
   roomId: string;
+  sender: string;
+  receiver: string;
 
   constructor({
     videoEl,
     ws,
     roomId,
+    sender,
+    receiver,
   }: {
     videoEl: HTMLVideoElement;
     ws: WebSocketClass;
     roomId: string;
+    sender: string;
+    receiver: string;
   }) {
     this.videoEl = videoEl;
     this.ws = ws;
     this.roomId = roomId;
+    this.sender = sender;
+    this.receiver = receiver;
     if (!window.RTCPeerConnection) {
       console.error('当前环境不支持RTCPeerConnection！');
       alert('当前环境不支持RTCPeerConnection！');
@@ -29,15 +37,15 @@ export class WebRTCPcClass {
 
     this.peerConnection?.addEventListener('track', (event) => {
       console.warn(`pc收到track事件`, event, event.streams);
-      event.streams[0].getTracks().forEach((track) => {
-        console.log('pc插入track', track);
-        const sender = this.peerConnection
-          ?.getSenders()
-          .find((sender) => sender.track === track);
-        if (!sender) {
-          this.peerConnection?.addTrack(track, event.streams[0]);
-        }
-      });
+      // event.streams[0].getTracks().forEach((track) => {
+      //   console.log('pc插入track', track);
+      //   const sender = this.peerConnection
+      //     ?.getSenders()
+      //     .find((sender) => sender.track === track);
+      //   if (!sender) {
+      //     this.peerConnection?.addTrack(track, event.streams[0]);
+      //   }
+      // });
       this.videoEl.srcObject = event.streams[0];
     });
 
@@ -50,6 +58,8 @@ export class WebRTCPcClass {
           data: {
             candidate: event.candidate,
             room_id: this.roomId,
+            sender: this.sender,
+            receiver: this.receiver,
           },
         });
       } else {
